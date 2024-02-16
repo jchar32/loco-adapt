@@ -3,14 +3,20 @@ import wx
 from typing import List, Tuple
 
 def get_path(wildcard: str = ""):
-    """Simply gui to get file path(s). If no file is selected, returns "".
+    """Simply gui to get file path(s). If no file is selected, returns 
 
-    Args:
-        wildcard (str, optional): can be a filter to only display specific file types. Examples: "*.csv", "*.json", "*.py". Defaults to "".
+    Parameters
+    ----------
+    wildcard : str, optional
+        Value of file extension to filter broswer for, by default ""
 
-    Returns:
-        direc (str | List[str]): directory of files selected
-        file (str | List[str]): file name(s)
+    Returns
+    -------
+    direc : str | List[str]
+        directory of files selected
+    file : str | List[str]
+        file name(s)
+        _description_
     """
     current_dir = os.getcwd()
     app = wx.App(redirect=False)
