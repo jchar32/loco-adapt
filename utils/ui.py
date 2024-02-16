@@ -1,6 +1,5 @@
 import os
 import wx
-from typing import List, Tuple
 
 
 def get_path(base_dir=None, wildcard: str = ""):
