@@ -19,7 +19,7 @@ participant_code = "p"
 image_dimensions = (1875, 1875)
 
 # Note: set image naming convention
-""" Currently this program assums files are named as follows:
+""" Currently this program assumse files are named as follows:
 
     [study name]_[condition number]_[view].[file extension]
     e.g. kneemap_1_Page 1.png or kneemap_1_frontal.png
