@@ -78,7 +78,9 @@ def map_metrics(contour, total_area: int):
 def find_painmap_files(abs_path, p, image_type=".png"):
     # Find images to process
     image_file_names = [
-        f for f in os.listdir(os.path.join(abs_path, p)) if f.endswith(image_type)
+        fname
+        for fname in os.listdir(os.path.join(abs_path, p))
+        if fname.endswith(image_type)
     ]
     return image_file_names
 
@@ -95,11 +97,13 @@ def parse_filenames(names, delimiter="_"):
     return conditions, map_views, img_file_types
 
 
-def batch_process():
+def main():
     datadir = relative_data_dir
     abs_path = os.path.abspath(datadir)
 
-    for j, p in enumerate(os.listdir(abs_path)):
+    all_fr_img_stack, all_tr_img_stack = [], []
+    all_moment_dfs = []
+    for j, p in enumerate(next(os.walk(abs_path))[1]):
         img_file_names = find_painmap_files(abs_path, p)
 
         if len(img_file_names) == 0:
@@ -109,10 +113,10 @@ def batch_process():
 
         # first dimension size is left as initializing with zero wont change the summation result
         fr_img_stack = np.full(
-            (int(num_img_files), image_dimensions[0], image_dimensions[1]), 0
+            (int(num_img_files / 2), image_dimensions[0], image_dimensions[1]), 0
         )
         tr_img_stack = np.full(
-            (int(num_img_files), image_dimensions[0], image_dimensions[1]), 0
+            (int(num_img_files / 2), image_dimensions[0], image_dimensions[1]), 0
         )
 
         # // File naming assumption:
@@ -126,6 +130,7 @@ def batch_process():
         # //
 
         moments = []
+        tr_idx, fr_idx = 0, 0
         for i, img_file_name in enumerate(img_file_names):
             # read in image
             image = cv2.imread(os.path.join(abs_path, p, img_file_name))
@@ -134,9 +139,11 @@ def batch_process():
             contours, image_bin = extract_contours(image)
 
             if map_views[0] in img_file_name:
-                fr_img_stack[i, :, :] = image_bin
+                fr_img_stack[fr_idx, :, :] = image_bin
+                fr_idx += 1
             elif map_views[1] in img_file_name:
-                tr_img_stack[i, :, :] = image_bin
+                tr_img_stack[tr_idx, :, :] = image_bin
+                tr_idx += 1
             else:
                 raise NameError("Image naming convention not recognized")
 
@@ -160,10 +167,7 @@ def batch_process():
 
         moments_df = pd.DataFrame(moments)
 
-        # render_maps(fr_img_stack, moments=None, cmap="hot_r")
-        # render_maps(tr_img_stack, moments=None, cmap="hot_r")
-
-        pd.DataFrame(moments_df).to_csv(os.path.join(abs_path, p, "moments.csv"))
+        moments_df.to_csv(os.path.join(abs_path, p, "moments.csv"))
 
         with open(os.path.join(abs_path, p, "maps_frontal.pkl"), "wb") as f:
             pickle.dump(fr_img_stack, f)
@@ -171,6 +175,28 @@ def batch_process():
         with open(os.path.join(abs_path, p, "maps_transverse.pkl"), "wb") as f:
             pickle.dump(tr_img_stack, f)
 
+        all_fr_img_stack.append([fr_img_stack])
+        all_tr_img_stack.append([tr_img_stack])
+
+        moments_df["participant"] = p
+        all_moment_dfs.append(moments_df)
+
+    # stack the kneemap moment dataframes by participant on first axis
+    all_moment_dfs = pd.concat(all_moment_dfs)
+    all_moment_dfs.to_csv(os.path.join(abs_path, "all_maps_moments.csv"))
+
+    # Stack knee map matrices by participant on first axis
+    all_fr_img_stack = np.stack(all_fr_img_stack).squeeze()
+    all_tr_img_stack = np.stack(all_tr_img_stack).squeeze()
+
+    # Save the stacked images for all participants
+    with open(os.path.join(abs_path, "all_maps_frontal.pkl"), "wb") as f:
+        pickle.dump(all_fr_img_stack, f)
+    with open(os.path.join(abs_path, "all_maps_transverse.pkl"), "wb") as f:
+        pickle.dump(all_tr_img_stack, f)
+
+    return all_fr_img_stack, all_tr_img_stack, all_moment_dfs
+
 
 if __name__ == "__main__":
-    batch_process()
+    all_fr_img_stack, all_tr_img_stack, all_moment_df = main()
