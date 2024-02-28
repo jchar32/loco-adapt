@@ -11,11 +11,9 @@ import pickle
 # use pip to install opencv-python
 
 # SETUP
-# 1. set relative data directory
+# 1. set relative data directory from this script to your data folders
 relative_data_dir = "../data/painmap/"
-# 2. set participant naming code (folders holding data)
-participant_code = "p"
-# 3. set expected image dimensions
+# 2. set expected image dimensions
 image_dimensions = (1875, 1875)
 
 # Note: set image naming convention
