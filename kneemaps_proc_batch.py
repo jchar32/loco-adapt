@@ -6,18 +6,13 @@ import cv2  # type: ignore
 import pandas as pd
 import pickle
 
-# Built a virtual environtment:
-# use conda to set up with numpy, matplotlib, ipython, ipympl
-# use pip to install opencv-python
-
-# SETUP
-# 1. set relative data directory from this script to your data folders
-relative_data_dir = "../data/painmap/"
-# 2. set expected image dimensions
-image_dimensions = (1875, 1875)
+"""
+3rd Party Requirements:
+numpy, matplotlib, opencv-python, pandas
+"""
 
 # Note: set image naming convention
-""" Currently this program assumse files are named as follows:
+""" Currently this program assumes files are named as follows:
 
     [study name]_[condition number]_[view].[file extension]
     e.g. kneemap_1_Page 1.png or kneemap_1_frontal.png
@@ -26,10 +21,10 @@ image_dimensions = (1875, 1875)
     condition number: [int] the condition number 
     view: [str] the view of the image (frontal, transverse or some other code you want)
 
-    I have not implemented large checks to handle edge case naming conventions, so it is preferred you stick with this convention for now. If you have a large set of images already, you can download PowerToys (a Microsoft program) and use the PowerRename tool to rename all the files in a folder to a consistent naming convention.
-    """
+    Currently, it is assumed there are two [views] per [condition number] (e.g., frontal and transverse view images).
 
-# // currently assumes that there are 2 images per X number of conditions (e.g., frontal and transverse view images)
+    I have not implemented large checks to handle edge case naming conventions, so it is preferred you stick with this convention for now. If you have a large set of images already, you can download PowerToys (a Microsoft program) and use the PowerRename tool to rename all the files in a folder to a consistent naming convention.
+"""
 
 
 def render_maps(map, moments=None, cmap="hot"):
@@ -197,4 +192,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # SETUP
+    # 1. set relative data directory from this script to your data folders
+    relative_data_dir = "../data/painmap/"
+    # 2. set expected image dimensions
+    image_dimensions = (1875, 1875)
     all_fr_img_stack, all_tr_img_stack, all_moment_df = main()
