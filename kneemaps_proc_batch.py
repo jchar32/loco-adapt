@@ -1,4 +1,4 @@
-# Library imports
+# %% Library imports
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -90,7 +90,7 @@ def parse_filenames(names, delimiter="_"):
     return conditions, map_views, img_file_types
 
 
-def main():
+def main() -> tuple:
     datadir = relative_data_dir
     abs_path = os.path.abspath(datadir)
 
@@ -194,7 +194,16 @@ def main():
 if __name__ == "__main__":
     # SETUP
     # 1. set relative data directory from this script to your data folders
-    relative_data_dir = "../data/painmap/"
+    relative_data_dir = "../data/locohab/"
     # 2. set expected image dimensions
     image_dimensions = (1875, 1875)
-    all_fr_img_stack, all_tr_img_stack, all_moment_df = main()
+    all_fr_img_stack, all_tr_img_stack, all_moment_dfs = main()
+
+    # render maps to figure
+    num_conditions = all_fr_img_stack.shape[
+        1
+    ]  # assumed dimension containing conditions
+    plt.style.use("default")
+    for c in range(num_conditions):
+        render_maps(all_fr_img_stack[:, c, :, :], cmap="hot")
+        render_maps(all_tr_img_stack[:, c, :, :], cmap="hot")
