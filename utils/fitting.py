@@ -20,7 +20,7 @@ def exponential(x, a, b, c):
     -------
     ndarray
         y = f(x) = a * exp(-b * x) + c
-    """    
+    """
     return a * np.exp(-b * x) + c
 
 
@@ -42,7 +42,7 @@ def inverse_exponential(y, a, b, c):
     -------
     ndarray
         x = f(y) = -ln((y - c) / a) / b
-    """    
+    """
     return -1 * np.log((y - c) / a) / b
 
 
@@ -62,7 +62,7 @@ def linear(x, m, b):
     -------
     ndarray
         y = f(x) = m * x + b
-    """    
+    """
     return m * x + b
 
 
@@ -85,7 +85,7 @@ def fit_exp(x, y):
         pcov- ndarray: covariance matrix for the parameters
         infodict- dict: information about the optimization
         mesg- str: message about the optimization
-    """    
+    """
     popt, pcov, infodict, mesg, _ = optimize.curve_fit(
         exponential, x, y, full_output=True, p0=[1, 1e-6, 1]
     )
@@ -111,7 +111,7 @@ def fit_lin(x, y):
         pcov- ndarray: covariance matrix for the parameters
         infodict- dict: information about the optimization
         mesg- str: message about the optimization
-    """    
+    """
     popt, pcov, infodict, mesg, _ = optimize.curve_fit(linear, x, y, full_output=True)
     return popt, pcov, infodict, mesg
 
@@ -130,7 +130,7 @@ def rsquared(y, predy):
     -------
     float
         R-squared 1- (residual sum of squares / total sum of squares)
-    """    
+    """
     ss_res = np.sum((y - predy) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     r_squared = 1 - (ss_res / ss_tot)
@@ -151,10 +151,10 @@ def rad_of_curve(xdata, ydata):
     -------
     float
         radius of the curvature (1 + y'**2)**1.5 / |y''| where y' and y'' are the first and second derivatives of the function evaluated at xdata and ydata
-    """    
+    """
     yd = derivative(xdata, ydata)
     ydd = derivative(xdata, yd)
-    return ((1 + yd**2)**1.5) / np.abs(ydd)
+    return ((1 + yd**2) ** 1.5) / np.abs(ydd)
 
 
 def derivative(x, y):
@@ -171,5 +171,19 @@ def derivative(x, y):
     -------
     ndarray
         the first derivative of y with respect to x
-    """    
+    """
     return np.gradient(y, x)
+
+
+def fit_inv_exp(query_pts: list, fit_params: dict) -> dict:
+    x_at_q = dict.fromkeys(query_pts, None)
+    for q in query_pts:
+        x_at_q[q] = inverse_exponential(q, *fit_params)
+    return x_at_q
+
+
+def fit_inv_lin(query_pts: list, fit_params: dict) -> dict:
+    x_at_q = dict.fromkeys(query_pts, None)
+    for q in query_pts:
+        x_at_q[q] = (q - fit_params[1]) / fit_params[0]
+    return x_at_q
