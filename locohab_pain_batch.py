@@ -113,7 +113,7 @@ def main():
         vertical_spacing=0.1,
     )
 
-    for p in participant_numbers:
+    for i, p in enumerate(participant_numbers):
         p = int(p)
         # point data
         fig.add_trace(
@@ -124,7 +124,7 @@ def main():
                 .flatten(),
                 mode="markers",
                 name=f"P{p}",
-                marker=dict(size=10, opacity=0.8, color=p_colours[p]),
+                marker=dict(size=10, opacity=0.8, color=p_colours[i]),
                 showlegend=False,
             ),
             row=1,
@@ -138,7 +138,7 @@ def main():
                 .flatten(),
                 mode="markers",
                 name=f"P{p}",
-                marker=dict(size=10, opacity=0.8, color=p_colours[p]),
+                marker=dict(size=10, opacity=0.8, color=p_colours[i]),
                 showlegend=False,
             ),
             row=1,
@@ -152,7 +152,7 @@ def main():
                 y=tonic_fits["participant"]["linear"]["ypred"][p].flatten(),
                 mode="lines",
                 name=f"P{p}",
-                line=dict(dash="solid", color=p_colours[p]),
+                line=dict(dash="solid", color=p_colours[i]),
             ),
             row=1,
             col=1,
@@ -163,7 +163,7 @@ def main():
                 y=tonic_fits["participant"]["exp"]["ypred"][p].flatten(),
                 mode="lines",
                 name=f"P{p}",
-                line=dict(dash="solid", color=p_colours[p]),
+                line=dict(dash="solid", color=p_colours[i]),
                 showlegend=False,
             ),
             row=1,
