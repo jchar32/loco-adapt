@@ -7,6 +7,7 @@ from plotly.subplots import make_subplots
 import pickle
 import os
 from utils import fitting
+import utils.render as render
 
 
 def main():
@@ -69,12 +70,6 @@ def main():
         timepoints, *tonic_fits["overall"]["exp"]["coeffs"]
     )
 
-    # save fit data
-    with open(
-        os.path.join("../data/locohab/", "habituation_fit_results.pkl"), "wb"
-    ) as f:
-        pickle.dump(tonic_fits, f)
-
     # For each participant
     for i in np.unique(tonic_data["pid"]):
         # fit linear
@@ -99,6 +94,12 @@ def main():
             timepoints, *tonic_fits["participant"]["exp"]["coeffs"][i]
         )
 
+    # save fit data
+    with open(
+        os.path.join("../data/locohab/", "habituation_fit_results.pkl"), "wb"
+    ) as f:
+        pickle.dump(tonic_fits, f)
+
     # Plot data and fits
     tonic_data["pid"] = tonic_data["pid"].astype(str)
     participant_numbers = np.unique(tonic_data["pid"])
@@ -112,8 +113,6 @@ def main():
         horizontal_spacing=0.02,
         vertical_spacing=0.1,
     )
-
-    import utils.render as render
 
     for i, p in enumerate(participant_numbers):
         fig = render.pain_time_plot(
