@@ -113,62 +113,14 @@ def main():
         vertical_spacing=0.1,
     )
 
+    import utils.render as render
+
     for i, p in enumerate(participant_numbers):
-        p = int(p)
-        # point data
-        fig.add_trace(
-            go.Scatter(
-                x=tonic_data["timepoint"][tonic_data["pid"] == str(p)],
-                y=tonic_data["painrating"][tonic_data["pid"] == str(p)]
-                .to_numpy()
-                .flatten(),
-                mode="markers",
-                name=f"P{p}",
-                marker=dict(size=10, opacity=0.8, color=p_colours[i]),
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=tonic_data["timepoint"][tonic_data["pid"] == str(p)],
-                y=tonic_data["painrating"][tonic_data["pid"] == str(p)]
-                .to_numpy()
-                .flatten(),
-                mode="markers",
-                name=f"P{p}",
-                marker=dict(size=10, opacity=0.8, color=p_colours[i]),
-                showlegend=False,
-            ),
-            row=1,
-            col=2,
+        fig = render.pain_time_plot(
+            fig, p, i, tonic_data, tonic_fits, timepoints, p_colours
         )
 
-        # fitted data
-        fig.add_trace(
-            go.Scatter(
-                x=timepoints.flatten(),
-                y=tonic_fits["participant"]["linear"]["ypred"][p].flatten(),
-                mode="lines",
-                name=f"P{p}",
-                line=dict(dash="solid", color=p_colours[i]),
-            ),
-            row=1,
-            col=1,
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=timepoints.flatten(),
-                y=tonic_fits["participant"]["exp"]["ypred"][p].flatten(),
-                mode="lines",
-                name=f"P{p}",
-                line=dict(dash="solid", color=p_colours[i]),
-                showlegend=False,
-            ),
-            row=1,
-            col=2,
-        )
+    # Add overall fits
     fig.add_trace(
         go.Scatter(
             x=timepoints.flatten(),
