@@ -87,7 +87,7 @@ def fit_exp(x, y):
         mesg- str: message about the optimization
     """
     popt, pcov, infodict, mesg, _ = optimize.curve_fit(
-        exponential, x, y, full_output=True, p0=[1, 1e-6, 1]
+        exponential, x, y, full_output=True, p0=[1, 1e-6, 1], maxfev=10000
     )
     return popt, pcov, infodict, mesg
 
@@ -157,7 +157,7 @@ def rad_of_curve(xdata, ydata):
     return ((1 + yd**2) ** 1.5) / np.abs(ydd)
 
 
-def derivative(x, y):
+def derivative(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Wrapper for numpy.gradient to calculate the first derivative of the input y values with respect to the input x values.
 
     Parameters
