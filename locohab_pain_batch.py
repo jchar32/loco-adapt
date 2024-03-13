@@ -7,7 +7,6 @@ from plotly.subplots import make_subplots
 import pickle
 import os
 from utils import fitting
-import utils.render as render
 
 
 def fit_to_data(
@@ -143,14 +142,29 @@ def plot_alltrials(tonic_data, tonic_fits, timepoints, p_colours):
     # All trials together
     fig = go.Figure()
     for i, p in enumerate(participant_numbers):
-        fig = render.pain_time_plot(
-            fig,
-            p,
-            i,
-            tonic_data,
-            tonic_fits["participant"]["exp"],
-            timepoints,
-            p_colours,
+        p = int(p)
+        fig.add_trace(
+            go.Scatter(
+                x=tonic_data["timepoint"][tonic_data["pid"] == str(p)],
+                y=tonic_data["painrating"][tonic_data["pid"] == str(p)]
+                .to_numpy()
+                .flatten(),
+                mode="markers",
+                name=f"P{p}",
+                marker=dict(size=10, opacity=0.8, color=p_colours[i]),
+                showlegend=False,
+            ),
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=timepoints.flatten(),
+                y=tonic_fits["participant"]["exp"]["ypred"][p].flatten(),
+                mode="lines",
+                name=f"P{p}",
+                line=dict(dash="solid", color=p_colours[i]),
+                showlegend=False,
+            ),
         )
 
     fig.add_trace(
