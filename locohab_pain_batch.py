@@ -99,7 +99,7 @@ def process_habituation_data(p_colours, timepoints):
     d.columns = d.columns.astype(str)
 
     # combine trial and condition columns
-    pid = d.loc[:, "pid"].to_numpy()
+    # pid = d.loc[:, "pid"].to_numpy()
 
     # Change to longform and remove any remaining participant place holders
     tonic_data = pd.melt(
