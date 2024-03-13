@@ -53,16 +53,39 @@ def fit_to_data(
 
 def process_habituation_data(p_colours, timepoints):
     # !! Really should be a Class but this is simpler for exporting stuff elsewhere, for now...
-    fit_dict = {
-        "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
-        "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
-    }
     tonic_fits = {
-        "overall": fit_dict,
-        "participant": fit_dict,
-        "trial1": fit_dict,
-        "trial2": fit_dict,
-        "trial3": fit_dict,
+        "overall": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "participant": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "participant_trial1": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "participant_trial2": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "participant_trial3": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "overall_trial1": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "overall_trial2": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
+        "overall_trial3": {
+            "linear": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+            "exp": {"coeffs": {}, "cov": {}, "info": {}, "ypred": {}, "r2": {}},
+        },
     }
     # !! -----------------------
 
@@ -94,6 +117,14 @@ def process_habituation_data(p_colours, timepoints):
         tonic_data, timepoints, tonic_fits["overall"], grouping_name="overall"
     )
 
+    for t in np.unique(tonic_data["trial"]):
+        tonic_fits[f"overall_trial{t}"] = fit_to_data(
+            tonic_data.loc[tonic_data["trial"] == t, :],
+            timepoints,
+            tonic_fits[f"overall_trial{t}"],
+            grouping_name="overall_trial",
+        )
+
     # For each participant
     for i in np.unique(tonic_data["pid"]):
         # fit linear
@@ -108,13 +139,14 @@ def process_habituation_data(p_colours, timepoints):
 
         # fit for each trial (n=3)
         for t in np.unique(tonic_data_filt["trial"]):
-            tonic_fits[f"trial{t}"] = fit_to_data(
+            tonic_fits[f"participant_trial{t}"] = fit_to_data(
                 tonic_data_filt.loc[tonic_data_filt["trial"] == t, :],
                 timepoints,
-                tonic_fits[f"trial{t}"],
+                tonic_fits[f"participant_trial{t}"],
                 grouping_name="participant_trial",
                 index=i,
             )
+
     return tonic_data, tonic_fits
 
 
@@ -204,7 +236,14 @@ def plot_separatetrials(tonic_data, tonic_fits, timepoints, p_colours):
         rows=1,
         cols=3,
         shared_yaxes=True,
-        subplot_titles=("Trial 1", "Trial 2", "Trial 3"),
+        subplot_titles=(
+            "Trial 1, tau ="
+            + str(np.round(1 / tonic_fits["overall_trial1"]["exp"]["coeffs"][0][1], 2)),
+            "Trial 2, tau ="
+            + str(np.round(1 / tonic_fits["overall_trial2"]["exp"]["coeffs"][0][1], 2)),
+            "Trial 3, tau ="
+            + str(np.round(1 / tonic_fits["overall_trial3"]["exp"]["coeffs"][0][1], 2)),
+        ),
         x_title="Time (s)",
         y_title="Pain rating (0-10)",
         horizontal_spacing=0.02,
@@ -232,19 +271,19 @@ def plot_separatetrials(tonic_data, tonic_fits, timepoints, p_colours):
                 row=1,
                 col=t,
             )
-            if i == len(participant_numbers) - 1:
-                subp.add_trace(
-                    go.Scatter(
-                        x=timepoints.flatten(),
-                        y=tonic_fits[f"trial{t}"]["exp"]["ypred"][0].flatten(),
-                        mode="lines",
-                        name=f"Mean Habituation Trial{t}",
-                        line=dict(dash="solid", color="black", width=4),
-                        showlegend=False,
-                    ),
-                    row=1,
-                    col=t,
-                )
+    for t in range(1, 4):
+        subp.add_trace(
+            go.Scatter(
+                x=timepoints.flatten(),
+                y=tonic_fits[f"overall_trial{t}"]["exp"]["ypred"][0].flatten(),
+                mode="lines",
+                name=f"Mean Habituation Trial{t}",
+                line=dict(dash="solid", color="black", width=4),
+                showlegend=False,
+            ),
+            row=1,
+            col=t,
+        )
     subp.update_layout(
         width=1200,
         height=600,
@@ -265,8 +304,9 @@ if __name__ == "__main__":
     # Initializations
     p_colours = px.colors.qualitative.Vivid
     timepoints = np.arange(30, 630, 30).reshape(1, 20)  # up to 630 so 600 is included.
+
     tonic_data, tonic_fits = process_habituation_data(p_colours, timepoints)
-    # save_habituation_data(tonic_data, tonic_fits)
+    save_habituation_data(tonic_data, tonic_fits)
     alltrials_plot = plot_alltrials(tonic_data, tonic_fits, timepoints, p_colours)
     separatetrials_plot = plot_separatetrials(
         tonic_data, tonic_fits, timepoints, p_colours
