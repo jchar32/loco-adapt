@@ -228,7 +228,9 @@ def plot_alltrials(tonic_data, tonic_fits, timepoints, p_colours):
 
 
 # %%
-def plot_separatetrials(tonic_data, tonic_fits, timepoints, p_colours):
+def plot_separatetrials(
+    tonic_data, tonic_fits, timepoints, p_colours, overall_fit_avg="pointwise"
+):
     tonic_data["pid"] = tonic_data["pid"].astype(str)
     participant_numbers = np.unique(tonic_data["pid"])
     # Trials separated: pain over time, per trial
@@ -272,10 +274,30 @@ def plot_separatetrials(tonic_data, tonic_fits, timepoints, p_colours):
                 col=t,
             )
     for t in range(1, 4):
+        if overall_fit_avg == "pointwise":
+            overall_fits = tonic_fits[f"overall_trial{t}"]["exp"]["coeffs"][0]
+        elif overall_fit_avg == "median_coeffs":
+            overall_fits = np.median(
+                [
+                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
+                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
+                ],
+                axis=0,
+            )
+        elif overall_fit_avg == "mean_coeffs":
+            overall_fits = np.mean(
+                [
+                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
+                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
+                ],
+                axis=0,
+            )
+        print(overall_fits)
         subp.add_trace(
             go.Scatter(
                 x=timepoints.flatten(),
-                y=tonic_fits[f"overall_trial{t}"]["exp"]["ypred"][0].flatten(),
+                y=fitting.exponential(timepoints.flatten(), *overall_fits),
+                # y=tonic_fits[f"overall_trial{t}"]["exp"]["ypred"][0].flatten(),
                 mode="lines",
                 name=f"Mean Habituation Trial{t}",
                 line=dict(dash="solid", color="black", width=4),
@@ -303,12 +325,12 @@ def plot_separatetrials(tonic_data, tonic_fits, timepoints, p_colours):
 if __name__ == "__main__":
     # Initializations
     p_colours = px.colors.qualitative.Vivid
-    timepoints = np.arange(30, 630, 30).reshape(1, 20)  # up to 630 so 600 is included.
+    timepoints = np.arange(0, 630, 30).reshape(1, 21)  # up to 630 so 600 is included.
 
     tonic_data, tonic_fits = process_habituation_data(p_colours, timepoints)
     save_habituation_data(tonic_data, tonic_fits)
     alltrials_plot = plot_alltrials(tonic_data, tonic_fits, timepoints, p_colours)
     separatetrials_plot = plot_separatetrials(
-        tonic_data, tonic_fits, timepoints, p_colours
+        tonic_data, tonic_fits, timepoints, p_colours, overall_fit_avg="median_coeffs"
     )
     separatetrials_plot.write_html("../data/locohab/pain_habituation_plot-3panel.html")
