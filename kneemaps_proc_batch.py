@@ -173,7 +173,7 @@ def main() -> tuple:
 
         moments_df["participant"] = p
         all_moment_dfs.append(moments_df)
-
+        print(f"Processed participant {p}: img size {image_bin.shape}")
     # stack the kneemap moment dataframes by participant on first axis
     all_moment_dfs = pd.concat(all_moment_dfs)
     all_moment_dfs.to_csv(os.path.join(abs_path, "all_maps_moments.csv"))
@@ -194,7 +194,7 @@ def main() -> tuple:
 if __name__ == "__main__":
     # SETUP
     # 1. set relative data directory from this script to your data folders
-    relative_data_dir = "../data/locohab/"
+    relative_data_dir = "../data/painmap/"
     # 2. set expected image dimensions
     image_dimensions = (1875, 1875)
     all_fr_img_stack, all_tr_img_stack, all_moment_dfs = main()
@@ -203,7 +203,158 @@ if __name__ == "__main__":
     num_conditions = all_fr_img_stack.shape[
         1
     ]  # assumed dimension containing conditions
-    plt.style.use("default")
-    for c in range(num_conditions):
-        render_maps(all_fr_img_stack[:, c, :, :], cmap="hot")
-        render_maps(all_tr_img_stack[:, c, :, :], cmap="hot")
+    # plt.style.use("default")
+    # for c in range(num_conditions):
+    # render_maps(all_fr_img_stack[:, c, :, :], cmap="hot")
+    # render_maps(all_tr_img_stack[:, c, :, :], cmap="hot")
+
+# %%
+# !! Move this to different plotting script? and/or replce the "rendermaps function"
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+
+# Knee map plots for figures
+frontal_map = make_subplots(
+    rows=1,
+    cols=3,
+    shared_yaxes=True,
+    subplot_titles=("Pain 1/10", "Pain 3/10", "Pain 5/10"),
+    x_title="",
+    y_title="",
+    horizontal_spacing=0.02,
+    vertical_spacing=0.1,
+)
+# sum across maps to get counts per pixel
+for c in range(num_conditions):
+    # render_maps(all_fr_img_stack[:, c, :, :], cmap="hot")
+    # render_maps(all_tr_img_stack[:, c, :, :], cmap="hot")
+    sum_map = np.sum(all_fr_img_stack[:, c, :, :], axis=0)
+
+    # mask array to remove the background
+    masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
+    frontal_map.add_trace(
+        go.Heatmap(z=masked_map, colorscale="hot", showscale=False),
+        row=1,
+        col=c + 1,
+    )
+
+frontal_map.update_layout(
+    autosize=True,
+    width=800,
+    height=400,
+    coloraxis=dict(colorscale="hot_r"),
+    showlegend=False,
+    title_text="Frontal View Pain Maps",
+)
+frontal_map.show()
+
+
+# %% Frontal view pain maps
+import plotly.graph_objects as go
+
+# import plotly.express as px
+from plotly.subplots import make_subplots
+
+for c in range(num_conditions):
+    sum_map = np.sum(all_fr_img_stack[:, c, :, :], axis=0)
+    # mask array to remove the background
+    # masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
+    sum_map = sum_map.astype(float)
+    sum_map[sum_map == 0] = np.nan
+    masked_map = sum_map.copy()
+    frontal_map = go.Figure()
+    frontal_map.add_trace(
+        go.Heatmap(
+            z=masked_map,
+            colorscale="hot",
+            reversescale=False,
+            showlegend=False,
+            showscale=False,
+            opacity=0.5,
+        )
+    )
+    frontal_map.update_xaxes(
+        showline=False, showgrid=False, zeroline=False, showticklabels=False
+    )
+    frontal_map.update_yaxes(
+        showline=False, showgrid=False, zeroline=False, showticklabels=False
+    )
+    frontal_map.update_layout(
+        autosize=True,
+        width=600,
+        height=600,
+        showlegend=False,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+    frontal_map.write_html(f"../data/painmap/kneemap_fr_plot_pain{c+1}.html")
+    frontal_map.write_image(f"../data/painmap/kneemap_fr_plot_pain{c+1}.svg")
+    del frontal_map
+
+# %%
+for c in range(num_conditions):
+    sum_map = np.sum(all_tr_img_stack[:, c, :, :], axis=0)
+    # mask array to remove the background
+    # masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
+    sum_map = sum_map.astype(float)
+    sum_map[sum_map == 0] = np.nan
+    masked_map = sum_map.copy()
+    trans_map = go.Figure()
+    trans_map.add_trace(
+        go.Heatmap(
+            z=masked_map,
+            colorscale="hot",
+            reversescale=False,
+            showlegend=False,
+            showscale=False,
+            opacity=0.5,
+        )
+    )
+    trans_map.update_xaxes(
+        showline=False, showgrid=False, zeroline=False, showticklabels=False
+    )
+    trans_map.update_yaxes(
+        showline=False, showgrid=False, zeroline=False, showticklabels=False
+    )
+    trans_map.update_layout(
+        autosize=True,
+        width=600,
+        height=600,
+        showlegend=False,
+    )
+    trans_map.write_html(f"../data/painmap/kneemap_tr_plot_pain{c+1}.html")
+    trans_map.write_image(f"../data/painmap/kneemap_tr_plot_pain{c+1}.svg")
+    del trans_map
+
+# %%
+c = 1
+sum_map = np.sum(all_fr_img_stack[:, c, :, :], axis=0)
+# mask array to remove the background
+# masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
+sum_map = sum_map.astype(float)
+sum_map[sum_map == 0] = np.nan
+masked_map = sum_map.copy()
+trans_map = go.Figure()
+trans_map.add_trace(
+    go.Heatmap(
+        z=masked_map,
+        colorscale="hot",
+        reversescale=False,
+        showlegend=False,
+        showscale=True,
+        opacity=0.5,
+    )
+)
+trans_map.update_xaxes(
+    showline=False, showgrid=False, zeroline=False, showticklabels=False
+)
+
+trans_map.update_layout(
+    autosize=True,
+    width=600,
+    height=600,
+    showlegend=False,
+)
+trans_map.show()
+# trans_map.write_image(f"../data/painmap/kneemap_legend_scalebar_plot_pain{c+1}.svg")
