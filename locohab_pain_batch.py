@@ -233,18 +233,36 @@ def plot_separatetrials(
 ):
     tonic_data["pid"] = tonic_data["pid"].astype(str)
     participant_numbers = np.unique(tonic_data["pid"])
+    overall_fits = {}
+    for t in range(1, 4):
+        if overall_fit_avg == "pointwise":
+            overall_fits[t] = tonic_fits[f"overall_trial{t}"]["exp"]["coeffs"][0]
+        elif overall_fit_avg == "median_coeffs":
+            overall_fits[t] = np.median(
+                [
+                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
+                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
+                ],
+                axis=0,
+            )
+        elif overall_fit_avg == "mean_coeffs":
+            overall_fits[t] = np.mean(
+                [
+                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
+                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
+                ],
+                axis=0,
+            )
+    print(overall_fits.items())
     # Trials separated: pain over time, per trial
     subp = make_subplots(
         rows=1,
         cols=3,
         shared_yaxes=True,
         subplot_titles=(
-            "Trial 1, tau ="
-            + str(np.round(1 / tonic_fits["overall_trial1"]["exp"]["coeffs"][0][1], 2)),
-            "Trial 2, tau ="
-            + str(np.round(1 / tonic_fits["overall_trial2"]["exp"]["coeffs"][0][1], 2)),
-            "Trial 3, tau ="
-            + str(np.round(1 / tonic_fits["overall_trial3"]["exp"]["coeffs"][0][1], 2)),
+            "Trial 1: tau=" + str(np.round(1 / overall_fits[1][1], 2)),
+            "Trial 2: tau=" + str(np.round(1 / overall_fits[2][1], 2)),
+            "Trial 3: tau=" + str(np.round(1 / overall_fits[3][1], 2)),
         ),
         x_title="Time (s)",
         y_title="Pain rating (0-10)",
@@ -274,29 +292,10 @@ def plot_separatetrials(
                 col=t,
             )
     for t in range(1, 4):
-        if overall_fit_avg == "pointwise":
-            overall_fits = tonic_fits[f"overall_trial{t}"]["exp"]["coeffs"][0]
-        elif overall_fit_avg == "median_coeffs":
-            overall_fits = np.median(
-                [
-                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
-                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
-                ],
-                axis=0,
-            )
-        elif overall_fit_avg == "mean_coeffs":
-            overall_fits = np.mean(
-                [
-                    tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"][j]
-                    for j in tonic_fits[f"participant_trial{t}"]["exp"]["coeffs"].keys()
-                ],
-                axis=0,
-            )
-        print(overall_fits)
         subp.add_trace(
             go.Scatter(
                 x=timepoints.flatten(),
-                y=fitting.exponential(timepoints.flatten(), *overall_fits),
+                y=fitting.exponential(timepoints.flatten(), *overall_fits[t]),
                 # y=tonic_fits[f"overall_trial{t}"]["exp"]["ypred"][0].flatten(),
                 mode="lines",
                 name=f"Mean Habituation Trial{t}",
@@ -324,7 +323,7 @@ def plot_separatetrials(
 # %%
 if __name__ == "__main__":
     # Initializations
-    p_colours = px.colors.qualitative.Vivid
+    p_colours = px.colors.qualitative.Vivid + px.colors.qualitative.Plotly
     timepoints = np.arange(0, 630, 30).reshape(1, 21)  # up to 630 so 600 is included.
 
     tonic_data, tonic_fits = process_habituation_data(p_colours, timepoints)
@@ -334,3 +333,7 @@ if __name__ == "__main__":
         tonic_data, tonic_fits, timepoints, p_colours, overall_fit_avg="median_coeffs"
     )
     separatetrials_plot.write_html("../data/locohab/pain_habituation_plot-3panel.html")
+    separatetrials_plot.write_image("../data/locohab/pain_habituation_plot-3panel.svg")
+    separatetrials_plot.write_image("../data/locohab/pain_habituation_plot-3panel.png")
+
+# %%
