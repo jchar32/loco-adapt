@@ -194,7 +194,7 @@ def main() -> tuple:
 if __name__ == "__main__":
     # SETUP
     # 1. set relative data directory from this script to your data folders
-    relative_data_dir = "../data/painmap/"
+    relative_data_dir = "../data/locohab/"
     # 2. set expected image dimensions
     image_dimensions = (1875, 1875)
     all_fr_img_stack, all_tr_img_stack, all_moment_dfs = main()
@@ -252,10 +252,17 @@ frontal_map.show()
 
 # %% Frontal view pain maps
 import plotly.graph_objects as go
-
-# import plotly.express as px
 from plotly.subplots import make_subplots
 
+# frontal_map = make_subplots(
+#         rows=1,
+#         cols=3,
+#         shared_yaxes=True,
+#         # subplot_titles=(
+#         #     "Trial 1: tau=" + str(np.round(1 / overall_fits[1][1], 2)),
+#         #     "Trial 2: tau=" + str(np.round(1 / overall_fits[2][1], 2)),
+#         #     "Trial 3: tau=" + str(np.round(1 / overall_fits[3][1], 2)),
+#         )
 for c in range(num_conditions):
     sum_map = np.sum(all_fr_img_stack[:, c, :, :], axis=0)
     # mask array to remove the background
@@ -268,11 +275,12 @@ for c in range(num_conditions):
         go.Heatmap(
             z=masked_map,
             colorscale="hot",
-            reversescale=False,
+            reversescale=True,
             showlegend=False,
-            showscale=False,
-            opacity=0.5,
-        )
+            showscale=True,
+            opacity=0.9,
+        ),
+        # row=1, col=c+1
     )
     frontal_map.update_xaxes(
         showline=False, showgrid=False, zeroline=False, showticklabels=False
@@ -284,12 +292,14 @@ for c in range(num_conditions):
         autosize=True,
         width=600,
         height=600,
-        showlegend=False,
+        showlegend=True,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
     )
-    frontal_map.write_html(f"../data/painmap/kneemap_fr_plot_pain{c+1}.html")
-    frontal_map.write_image(f"../data/painmap/kneemap_fr_plot_pain{c+1}.svg")
+
+    frontal_map.show()
+    frontal_map.write_html(f"{relative_data_dir}kneemap_fr_plot_pain{c+1}.html")
+    frontal_map.write_image(f"{relative_data_dir}kneemap_fr_plot_pain{c+1}.svg")
     del frontal_map
 
 # %%
@@ -305,10 +315,10 @@ for c in range(num_conditions):
         go.Heatmap(
             z=masked_map,
             colorscale="hot",
-            reversescale=False,
+            reversescale=True,
             showlegend=False,
-            showscale=False,
-            opacity=0.5,
+            showscale=True,
+            opacity=0.9,
         )
     )
     trans_map.update_xaxes(
@@ -323,8 +333,8 @@ for c in range(num_conditions):
         height=600,
         showlegend=False,
     )
-    trans_map.write_html(f"../data/painmap/kneemap_tr_plot_pain{c+1}.html")
-    trans_map.write_image(f"../data/painmap/kneemap_tr_plot_pain{c+1}.svg")
+    trans_map.write_html(f"{relative_data_dir}kneemap_tr_plot_pain{c+1}.html")
+    trans_map.write_image(f"{relative_data_dir}kneemap_tr_plot_pain{c+1}.svg")
     del trans_map
 
 # %%
