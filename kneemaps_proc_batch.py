@@ -1,14 +1,18 @@
 # %% Library imports
 import numpy as np
-import matplotlib.pyplot as plt
+
+# import matplotlib.pyplot as plt
 import os
 import cv2  # type: ignore
 import pandas as pd
 import pickle
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
 
 """
 3rd Party Requirements:
-numpy, matplotlib, opencv-python, pandas
+numpy, plotly, opencv-python, pandas
 """
 
 # Note: set image naming convention
@@ -28,23 +32,24 @@ numpy, matplotlib, opencv-python, pandas
 
 
 def render_maps(map, moments=None, cmap="hot"):
-    # sum across maps to get counts per pixel
-    sum_map = np.sum(map, axis=0)
+    # # sum across maps to get counts per pixel
+    # sum_map = np.sum(map, axis=0)
 
-    # mask array to remove the background
-    masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
+    # # mask array to remove the background
+    # masked_map = np.ma.masked_array(sum_map, mask=sum_map == 0)
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    # plot centroids if provided
-    if moments is not None:
-        for moment in moments:
-            plt.scatter(moment[0], moment[1], c="w", s=100, zorder=10)
+    # fig, ax = plt.subplots(figsize=(8, 8))
+    # # plot centroids if provided
+    # if moments is not None:
+    #     for moment in moments:
+    #         plt.scatter(moment[0], moment[1], c="w", s=100, zorder=10)
 
-    # plot summed and masked map
-    ci = plt.pcolormesh(masked_map, cmap=cmap, vmin=0, alpha=0.5)
-    plt.colorbar(ci)
-    plt.show()
-    ax.set_aspect("equal", "box")
+    # # plot summed and masked map
+    # ci = plt.pcolormesh(masked_map, cmap=cmap, vmin=0, alpha=0.5)
+    # plt.colorbar(ci)
+    # plt.show()
+    # ax.set_aspect("equal", "box")
+    pass
 
 
 def extract_contours(image):
@@ -182,12 +187,6 @@ def main() -> tuple:
     all_fr_img_stack = np.stack(all_fr_img_stack).squeeze()
     all_tr_img_stack = np.stack(all_tr_img_stack).squeeze()
 
-    # Save the stacked images for all participants
-    with open(os.path.join(abs_path, "all_maps_frontal.pkl"), "wb") as f:
-        pickle.dump(all_fr_img_stack, f)
-    with open(os.path.join(abs_path, "all_maps_transverse.pkl"), "wb") as f:
-        pickle.dump(all_tr_img_stack, f)
-
     return all_fr_img_stack, all_tr_img_stack, all_moment_dfs
 
 
@@ -195,9 +194,16 @@ if __name__ == "__main__":
     # SETUP
     # 1. set relative data directory from this script to your data folders
     relative_data_dir = "../data/locohab/"
+    proc_data_path = "../data/processed/painmap"
     # 2. set expected image dimensions
     image_dimensions = (1875, 1875)
     all_fr_img_stack, all_tr_img_stack, all_moment_dfs = main()
+
+    # Save the stacked images for all participants
+    with open(f"{proc_data_path}all_maps_frontal.pkl", "wb") as f:
+        pickle.dump(all_fr_img_stack, f)
+    with open(f"{proc_data_path}all_maps_transverse.pkl", "wb") as f:
+        pickle.dump(all_tr_img_stack, f)
 
     # render maps to figure
     num_conditions = all_fr_img_stack.shape[
@@ -209,12 +215,7 @@ if __name__ == "__main__":
     # render_maps(all_tr_img_stack[:, c, :, :], cmap="hot")
 
 # %%
-# !! Move this to different plotting script? and/or replce the "rendermaps function"
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-
-# Knee map plots for figures
+# Knee map plots for manuscript
 frontal_map = make_subplots(
     rows=1,
     cols=3,
