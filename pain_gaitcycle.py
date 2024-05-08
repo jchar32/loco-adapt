@@ -151,54 +151,74 @@ def apply_imu_calibration(data_in, imucal):
 
 
 # %% Compile imu data
+# Iterate over folders representing participants
 for pid, p in enumerate(folders):
+    # Define the base path to the participant's data
     path = f"{base_path}{p}/walkmaps/"
     cal_path = f"{base_path}{p}/calibration/"
     imu_cal_path = "../data/calibrations/mpu/"
 
+    # If the data path does not exist, skip this participant
     if not os.path.exists(path):
         continue
 
-    fld_available = os.listdir(path)  # data folders in participant folder
+    # Get a list of all data folders in the participant's directory
+    fld_available = os.listdir(path)
 
+    # Dictionary to store calibration matrices for sensor to body calibration
     s2bcal = {
-        "info": "s2b r matrix. it can be right side multiplied e.g., xA=calibrated data. It is transposed already",
+        "info": "s2b r matrix. It can be right side multiplied. It is transposed already.",
         "a68": None,
         "a69": None,
         "b68": None,
         "b69": None,
     }
-    # get s2b calibration matrices (sensor to body)
+
+    # Load sensor to body calibration matrices from calibration files
     s2bcal["a68"] = pd.read_csv(cal_path + "/a68.txt", header=None).to_numpy().T
     s2bcal["a69"] = pd.read_csv(cal_path + "/a69.txt", header=None).to_numpy().T
     s2bcal["b68"] = pd.read_csv(cal_path + "/b68.txt", header=None).to_numpy().T
     s2bcal["b69"] = pd.read_csv(cal_path + "/b69.txt", header=None).to_numpy().T
 
-    # Load and concatenate imu data
+    # List to accumulate raw IMU data across folders
     imu_data_raw = []
-    temp = []
-    load_header_flag = True
+    temp = []  # Temporary storage for data before concatenation
+    load_header_flag = True  # Flag to indicate if the header should be loaded
+
+    # Iterate over available folders to process IMU data
     for f, fld in enumerate(fld_available):
+        # Skip if it's not a directory
         if not os.path.isdir(path + fld):
             continue
 
+        # Load the headers from the first folder (only once)
         if load_header_flag:
             headernames = (
                 pd.read_csv(path + fld + "/headers.txt", header=None).iloc[0].to_list()
             )
-            load_header_flag = False
+            load_header_flag = False  # Headers are loaded, no need to load again
 
+        # Get the list of available files in the folder and sort them
         files_available = os.listdir(path + fld)
         sorted_file_list = io.sort_file_names(files_available)
 
+        # Iterate over sorted files and append data to temporary storage
         for i, file in enumerate(sorted_file_list):
+            # Skip header files and other non-data files
             if ("header" in file) or ("walkmaps" in file):
                 continue
+
+            # Read the data file and append to temporary storage
             dfile = pd.read_csv(path + fld + "/" + file, header=None)
             temp.append(dfile)
+
+    # Concatenate all data and reset index
     imu_data_raw = pd.concat(temp, axis=0).reset_index(drop=True)
+
+    # Filter out 'nan' columns and set the column names
     imu_data_raw.columns = list(filter(lambda x: x != "nan", np.array(headernames)))
 
+    # Dictionary to store IMU calibration data
     imucal = {}
     imu_name_map = {
         "a68": "9250A",
@@ -207,105 +227,134 @@ for pid, p in enumerate(folders):
         "b69": "6050B",
     }
 
-    if p not in ["p01", "p04"]:  # these were saved as calibrated data
-        # get imu calibration data
+    # If the participant is not in the list with calibrated data
+    if p not in ["p01", "p04"]:  # p01 and p04 are already calibrated
+        # Load calibration data for each IMU type
         for imu in imu_name_map.keys():
             imucal[imu] = {}
             (
-                imucal[imu]["r"],
-                imucal[imu]["a_off"],
-                imucal[imu]["g_off"],
+                imucal[imu]["r"],  # Rotation matrix
+                imucal[imu]["a_off"],  # Acceleration offset
+                imucal[imu]["g_off"],  # Gyroscope offset
             ) = get_imu_calibration(imu_name_map[imu])
 
+        # Apply the IMU calibration to the raw data
         imu_data_corrected = apply_imu_calibration(imu_data_raw, imucal)
 
+        # Apply the sensor-to-body calibration
         imu_data = apply_s2bcal(imu_data_corrected, s2bcal)
     else:
+        # If already calibrated, use the raw data directly
         imu_data = imu_data_raw.copy(deep=True)
-    # save the data
+
+    # Save the raw IMU data to a CSV file
     imu_data_raw.to_csv(f"{base_path}{p}/walkmaps/walkmap_data_raw.csv")
     imu_data.to_csv(f"{base_path}{p}/walkmaps/walkmap_data.csv")
-    imu_cals = pd.DataFrame.from_dict(imucal)
 
+    # Save calibration data as a pickle file
+    # Convert IMU calibration data to a DataFrame for easy saving
+    imu_cals = pd.DataFrame.from_dict(imucal)
     with open(f"{base_path}{p}/walkmaps/imu_cals.pkl", "wb") as f:
         pickle.dump(imucal, f)
     with open(f"{base_path}{p}/walkmaps/s2b_cals.pkl", "wb") as f:
         pickle.dump(s2bcal, f)
+
+    # Print a confirmation message indicating processing completion
     print(f"Processed data for {p}")
+
 
 # %% Load all data and pull out pain intensity ratings
 
+# %% Load all data and pull out pain intensity ratings
+
+# Dictionary to store all traces for pain intensity analysis
 all_traces = {}
 
+# Iterate over participant folders to extract data
 for pid, p in enumerate(folders):
+    # Define the path to the walkmaps data for the current participant
     path = f"{base_path}{p}/walkmaps/"
+
+    # If the path doesn't exist, skip to the next participant
     if not os.path.exists(path):
         continue
+
+    # Attempt to read the walkmap data; if it fails, skip this participant
     try:
         imu_data_raw = pd.read_csv(path + "walkmap_data.csv")
     except:
         continue
 
-    # linear interp to fill any nan values
+    # Fill missing values with zeros (could also use interpolation)
     imu_data = imu_data_raw.fillna(value=0)
-    # imu_data = imu_data_raw.interpolate()
 
-    # flag when time decreases
+    # Calculate the difference between consecutive time values to identify irregularities
     time_diff = np.diff(imu_data["time"])
     time_reversals = np.where((time_diff > 0.01) | (time_diff < -0.015))
 
-    # % Identify heel strike or toe off events
+    # Filter the IMU gyroscope data with a low-pass filter (6 Hz cutoff, 2nd order)
     gyr_filt = processing.filter_signal(
         imu_data.loc[:, ["b69_gx", "b69_gy", "b69_gz"]], 6, 200, "lowpass", 2
     )
+
+    # Filter the IMU accelerometer data with a low-pass filter (10 Hz cutoff, 2nd order)
     acc_filt = processing.filter_signal(
         imu_data[["b69_ax", "b69_ay", "b69_az"]], 10, 200, "lowpass", 2
     )
 
+    # Detect negative peaks in gyroscope data, indicating possible heel strike events
     negpeak_idx, negpks_thresh, frames_between_pks = gaitevents.index_gyro_negpeaks(
         gyr_filt, mlaxis=1
     )
 
-    # detect midswing peaks
+    # Detect midswing peaks in gyroscope data
     midswing, midswing_pk_props = gaitevents.midswing_peak(
         gyroml=gyr_filt[:, 1],
         negpeak_idx=negpeak_idx,
         min_peak_dist=frames_between_pks,
     )
 
-    # gait event detection
+    # Identify gait events such as heel strike, toe-off, etc.
     events = gaitevents.mariani(acc_filt, gyr_filt, midswing, negpeak_idx)
-    # Remove any ducplicates that snuck in
+
+    # Remove any duplicate events that may have been detected
     events.hs = np.unique(events.hs)
     events.to = np.unique(events.to)
     events.midswing = np.unique(events.midswing)
     events.midstance = np.unique(events.midstance)
 
-    # remove any erroneous noise in potentiometer data
+    # Apply a low-pass filter to the potentiometer data to remove noise
     paintrace_filt = processing.filter_signal(
         imu_data["potent_out"], 5, 200, "lowpass", 2
     )
 
+    # Initialize a list to store the normalized pain traces and peak ranges
     pain_traces = []
     peak_range = []
     trace = {}
 
-    # limited to 75 as lowest steps once all processed and kicked out bad stuff
+    # Keep a maximum of 75 strides for analysis
     n_strides_2keep = 75
+
+    # Iterate over heel strike events to extract pain intensity traces
     for hs in range(0, events.hs.shape[0] - 1):
+        # Ignore if the difference between consecutive heel strikes is greater than -600
         if events.hs[hs] - events.hs[hs + 1] < -600:
             continue
-        # time normalize to 0-100% gait cycle
+
+        # Extract and time-normalize the pain trace between consecutive heel strikes
         y = paintrace_filt[events.hs[hs] : events.hs[hs + 1]]
         t = np.linspace(0, y.shape[0] * (1 / 120), y.shape[0])
         t_norm = np.linspace(t[0], t[-1], 101)
 
+        # Interpolate to normalize the signal over a standardized time range
         signal_normalized = np.interp(t_norm, t, y)
         pain_traces.append(signal_normalized)
 
+        # Calculate the peak range of the signal
         peak_range.append(signal_normalized.max() - signal_normalized.min())
 
-    # compile data into dict
+    # Compile data for the current participant into a dictionary
     trace["peak_range"] = np.array(peak_range[:n_strides_2keep]).mean()
     trace["nd"] = pain_traces
     trace["mean"] = np.array(pain_traces[:n_strides_2keep]).mean(axis=0)
@@ -316,8 +365,14 @@ for pid, p in enumerate(folders):
     trace["full"] = paintrace_filt
     trace["events"] = events
     trace["time"] = imu_data["time"]
+
+    # Indicate that the data processing is complete for the current participant
     print(f"Processed data for {p}")
+
+    # Store the trace data in the all_traces dictionary
     all_traces[p] = trace
+
+    # Delete intermediate variables to free up memory
     del (
         imu_data_raw,
         imu_data,
@@ -330,12 +385,15 @@ for pid, p in enumerate(folders):
         midswing_pk_props,
         events,
     )
+
+# Save all traces to a pickle file for future analysis
 with open(f"{proc_data_path}pain_traces_50spm.pkl", "wb") as f:
     pickle.dump(all_traces, f)
 
+
 # %% Create plots
 
-# Load data
+# Load data for the plots
 with open(f"{proc_data_path}pain_traces_50spm.pkl", "rb") as f:
     all_traces = pickle.load(f)
 
@@ -479,92 +537,3 @@ paintrace_fig.show()
 paintrace_fig.write_html(f"{proc_data_path}pain_hallway_3panel.html")
 paintrace_fig.write_image(f"{proc_data_path}pain_hallway_3panel.svg")
 paintrace_fig.write_image(f"{proc_data_path}pain_hallway_3panel.png")
-
-# %%
-
-# paintrace_fig = go.Figure()
-# for i, p in enumerate(all_traces.keys()):
-#     paintrace_fig.add_trace(
-#         go.Scatter(
-#             x=np.linspace(0, 100, 101),
-#             y=all_traces[p]["mean"],
-#             name=p,
-#             mode="lines",
-#             line=dict(dash="solid", color=p_colours[i], width=2),
-#             showlegend=False,
-#         )
-#     )
-# paintrace_fig.update_layout(
-#     width=400,
-#     height=400,
-#     template="simple_white",
-#     title=r"Mean Pain Intensity\nby Gait Cycle",
-#     # legend=dict(orientation="v"),
-#     font_family="Arial, sans-serif",
-#     font_size=26,
-#     xaxis_title="Gait Cycle (%)",
-#     yaxis_title="Pain Intensity (0-10)",
-# )
-
-# %%
-# paintrace_fig.show()
-# paintrace_fig.write_html("../data/painmap/pain_hallway.html")
-# paintrace_fig.write_image("../data/painmap/pain_hallway.svg")
-# paintrace_fig.write_image("../data/painmap/pain_hallway.png")
-
-# %% TESTING PLOTTING SCRIPTS
-
-
-# # for p in all_traces.keys():
-# f1 = go.Figure()
-# for i in all_traces["p17"]["nd"]:
-#     f1.add_trace(
-#         go.Scatter(
-#             x=np.linspace(0, 100, 101),
-#             y=i,
-#             name="8",
-#             line=dict(width=1),
-#         )
-#     )
-# f1.show()
-
-# # %%
-# # ?? p07 is a good representative showing habituation
-
-# partic = "p17"
-# f2 = go.Figure()
-# f2.add_trace(
-#     go.Scatter(
-#         x=np.arange(0, len(all_traces[partic]["full"])), y=all_traces[partic]["full"]
-#     )
-# )
-# f2.add_trace(
-#     go.Scatter(
-#         x=all_traces[partic]["events"].hs,
-#         y=all_traces[partic]["full"][all_traces[partic]["events"].hs],
-#         mode="markers",
-#         marker=dict(size=10, color="green"),
-#     )
-# )
-# f2.show()
-
-# # %%
-# partic = "p16"
-# f2 = go.Figure()
-# f2.add_trace(
-#     go.Scatter(
-#         x=np.arange(0, len(all_traces[partic]["time"])), y=all_traces[partic]["time"]
-#     )
-# )
-# f2.add_trace(
-#     go.Scatter(
-#         x=all_traces[partic]["events"].hs,
-#         y=all_traces[partic]["time"][all_traces[partic]["events"].hs],
-#         mode="markers",
-#         marker=dict(size=10, color="green"),
-#     )
-# )
-# f2.show()
-# %%
-# with open("../data/painmap/all_traces.pkl", "wb") as f:
-#     pickle.dump(all_traces, f)
