@@ -390,7 +390,19 @@ for pid, p in enumerate(folders):
 with open(f"{proc_data_path}pain_traces_50spm.pkl", "wb") as f:
     pickle.dump(all_traces, f)
 
+# Calculate summary data
+id = all_traces.keys()
+summary_data = {}
+# for i in id:
+summary_data["peak_range"] = [all_traces[i]["peak_range"] for i in id]
+summary_data["nstride"] = [all_traces[i]["nstride"][0] for i in id]
+summary_data["sd"] = [np.mean(all_traces[i]["sd"]) for i in id]
+summary_data["max"] = [np.mean(all_traces[i]["max"]) for i in id]
+summary_data["min"] = [np.mean(all_traces[i]["min"]) for i in id]
+summary_data["mean"] = [np.mean(all_traces[i]["mean"]) for i in id]
+summary_df = pd.DataFrame.from_dict(summary_data)
 
+summary_df.to_csv(f"{proc_data_path}pain_summary.csv")
 # %% Create plots
 
 # Load data for the plots
